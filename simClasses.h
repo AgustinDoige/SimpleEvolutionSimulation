@@ -16,6 +16,7 @@ public:
         occupied[1] = nullptr;
         occupied[2] = nullptr;
     }
+    char cellshow();
 };
 
 /* A gene is number between 1 and 1000. This class includes ways to merge them */
@@ -51,6 +52,8 @@ public:
 
     Enviroment(int xs, int ys);
 
+    void initialize(int xs, int ys);
+
     /* Selects [amount] of random cells of the enviroment and puts food there */
     void sprayFood(int amount);
 
@@ -62,6 +65,10 @@ public:
     /* Simulates a fight and gives the winner the food
     PRE: map[x][y] has two organisms and food */
     void foodScramble(int x, int y);
+
+    void showFoodCells();
+
+    void printMap();
 
     ~Enviroment();
 };
@@ -96,14 +103,31 @@ public:
         }
     }
 
+    /* Modifies the Organism as if it just reproduced.
+    NOTE: Call AFTER calling baby=org1+org2 */
     void reproduce();
 
     /* Returns the offspring of the two organisms */
     Organism operator + (Organism& org);  
     void showOrganism();
+
+    char reprChar();
 };
 
 class Simulation {
+private:
+    Enviroment envir;
+public:
+    Simulation() {
+        int xs, xy;
+        std::cout << "Amount of Rows: ";
+        std::cin >> xs;
+        std::cout << "Amount of Columns: ";
+        std::cin >> xy;
+        envir.initialize(xs,xy);
+        envir.sprayFood()
+    }
+
 };
 
 #endif

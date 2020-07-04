@@ -2,9 +2,18 @@
 #include <iostream>
 #include <cstdlib>
 
-/*const int GENE_MAX_VAL = 1000;
-const int GENE_S_MUTATION = 50;*/
-
+///////////////////////////////////////////////////
+char Cell::cellshow() {
+    if(occupied[0]==nullptr) {
+        return (food ? '~' : ' ');
+    } else if(occupied[2]!=nullptr) {
+            return ('3');
+    } else if (occupied[1]!=nullptr) {
+        return (food ? '!' : '2');
+    } else {
+        return (*occupied[0]).reprChar();
+    }
+}
 ///////////////////////////////////////////////////
 Gene Gene::operator+(const Gene& b) {
     if(Gene::radicalMutationRoll()) {
@@ -15,7 +24,6 @@ Gene Gene::operator+(const Gene& b) {
         int mutation = aux % GENE_S_MUTATION;
         mutation *= (aux%2 == 0) ? 1 : -1;
         aux = (aux>>5)%100;
-        //std::cout << "aux:" << aux << "\tmutation:" << mutation << std::endl;
         mutation += (static_cast<float>(aux)/100.0f) * value + (1 - (static_cast<float>(aux)/100.0f)) * b.value;
         mutation = mutation>GENE_MAX_VAL ? GENE_MAX_VAL : mutation;
         return Gene(abs(mutation));
@@ -23,14 +31,42 @@ Gene Gene::operator+(const Gene& b) {
 }
 
 ///////////////////////////////////////////////////
-Enviroment::Enviroment() {
-    std::cout << "Enviroment cant be initialized with no dimensions" << std::endl;
-    exit(-1);
-}
+Enviroment::Enviroment() : xsize(0), ysize(0) {}
 
 Enviroment::Enviroment(int xs, int ys) : xsize(xs), ysize(ys) {
     map = new Cell*[xsize];
     for (int i = 0; i < xsize; i++) { map[i] = new Cell[ysize]; }
+}
+
+void Enviroment::initialize(int xs, int ys) {
+    xsize = xs;
+    ysize = ys;
+    map = new Cell*[xsize];
+    for (int i = 0; i < xsize; i++) { map[i] = new Cell[ysize]; }
+}
+
+void Enviroment::showFoodCells() {
+    std::cout << "Foods:  ";
+    for (int x=0; x<xsize; x++) {
+        for (int y=0; y<ysize; y++) {
+            if(map[x][y].food) {
+                std::cout << "[" << x << "," << y << "]" << " ";
+            }
+        }
+    }
+    std::cout << std::endl;
+}
+
+void Enviroment::printMap() {
+    std::cout << "|";
+    for (int y=0; y<ysize; y++) { std::cout << "="; }
+    std::cout << "|";
+    for (int x=0; x<xsize; x++) {
+        for (int y=0; y<ysize; y++) { std::cout << map[x][y].cellshow(); }
+        std::cout << "|\n|";
+    }
+    for (int y=0; y<ysize; y++) { std::cout << "="; }
+    std::cout << "|" << std::endl;
 }
 
 Enviroment::~Enviroment() {
@@ -38,9 +74,34 @@ Enviroment::~Enviroment() {
     delete[] map;
 }
 
+void Enviroment::sprayFood(int amount) {
+    int count = 0;
+    int randomgen, xcoord, ycoord;
+    while(count < amount) {
+        randomgen = rand();
+        for (int i=0; i<4; i++) {
+            xcoord = randomgen%xsize;            
+            randomgen = randomgen>>4;
+            ycoord = randomgen%ysize;
+            map[xcoord][ycoord].food = true;
+            count++;
+            if(count>amount) { break; }
+        }
+
+    }
+}
+/*
+void Enviroment::reproductionAttempt(int x, int y) {
+
+}
+
+void Enviroment::foodScramble(int x, int y) {
+
+}*/
+
+
 ///////////////////////////////////////////////////
-/*  
-    unsigned int age;
+/*  unsigned int age;
     unsigned int generation;
     unsigned int children;
     unsigned int energy;
@@ -77,11 +138,15 @@ Organism Organism::operator + (Organism& org) {
 }
 
 void Organism::showOrganism() {
-    std::cout << "age: " << age << "\t";
-    std::cout << "generation: " << generation << "\t";
-    std::cout << "children: " << children << "\n";
-    std::cout << "energy: " << energy << "\n";
-    std::cout << "adultage: " << adultage.geneval() << "\t";
-    std::cout << "size: " << size.geneval() << "\t";
+    std::cout << "age: "            << age                      << "\t";
+    std::cout << "generation: "     << generation               << "\t";
+    std::cout << "children: "       << children                 << "\n";
+    std::cout << "energy: "         << energy                   << "\n";
+    std::cout << "adultage: "       << adultage.geneval()       << "\t";
+    std::cout << "size: "           << size.geneval()           << "\t";
     std::cout << "offspringratio: " << offspringratio.geneval() << "\n" << std::endl;
+}
+
+char Organism::reprChar() {
+    return 'Y';
 }
