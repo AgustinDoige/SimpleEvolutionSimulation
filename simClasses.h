@@ -43,7 +43,7 @@ public:
 };
 
 class Enviroment {
-private:
+protected:
     int xsize;
     int ysize;
     Cell** map;
@@ -56,6 +56,8 @@ public:
 
     /* Selects [amount] of random cells of the enviroment and puts food there */
     void sprayFood(int amount);
+
+    void addOrganism(Organism*);
 
     /* Creates a new organism if attempt works.
     PRE: map[x][y] has two adult organisms
@@ -114,20 +116,16 @@ public:
     char reprChar();
 };
 
-class Simulation {
+class Simulation : private Enviroment {
 private:
-    Enviroment envir;
+    int foodperiod;
+    int foodamount;
 public:
-    Simulation() {
-        int xs, xy;
-        std::cout << "Amount of Rows: ";
-        std::cin >> xs;
-        std::cout << "Amount of Columns: ";
-        std::cin >> xy;
-        envir.initialize(xs,xy);
-        envir.sprayFood()
-    }
+    Simulation(int xs, int ys, int initFood, int foodp, int fooda, int initOrganisms, int baseEnergy);
 
+    void step();
+
+    void run(int cicles=0);
 };
 
 #endif

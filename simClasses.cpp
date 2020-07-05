@@ -74,6 +74,26 @@ Enviroment::~Enviroment() {
     delete[] map;
 }
 
+void Enviroment::addOrganism(Organism* org) {
+    int r, x, y;
+    int counter = 0;
+    while(counter < xsize*ysize) {
+        r = rand();
+        for (int i = 0; i<6; i++) {
+            x = r%xsize;
+            r = r>>2;
+            y = r%ysize;
+            r = r>>2;
+            if (map[x][y].occupied[0]==nullptr) {
+                map[x][y].occupied[0] = org;
+                return;
+            }
+        }
+    }
+    std::cout << "Failed to add organism to Map.\tOrganism:";
+    (*org).showOrganism();
+}
+
 void Enviroment::sprayFood(int amount) {
     int count = 0;
     int randomgen, xcoord, ycoord;
@@ -81,8 +101,9 @@ void Enviroment::sprayFood(int amount) {
         randomgen = rand();
         for (int i=0; i<4; i++) {
             xcoord = randomgen%xsize;            
-            randomgen = randomgen>>4;
+            randomgen = randomgen>>3;
             ycoord = randomgen%ysize;
+            randomgen = randomgen>>3;
             map[xcoord][ycoord].food = true;
             count++;
             if(count>amount) { break; }
@@ -149,4 +170,36 @@ void Organism::showOrganism() {
 
 char Organism::reprChar() {
     return 'Y';
+}
+///////////////////////////////////////////////////
+Simulation::Simulation(int xs, int ys, int initFood, int foodp, int fooda, int initOrganisms, int baseEnergy)
+          : Enviroment(xs, ys), foodperiod(foodp), foodamount(fooda){
+    Organism* originals;
+    sprayFood(initFood);
+    for(int i=0; i<initOrganisms; i++) {
+        addOrganism(new Organism(baseEnergy, true));
+    }
+}
+
+void Simulation::step() {
+    for (int x=0; x<xsize; x++) {
+        for (int y=0; y<ysize; y++) {
+
+        }
+    }
+}
+
+void Simulation::run(int cicles=-1) {
+    if (cicles==-1) {
+        while(true) {
+            step();
+            printMap();
+        }
+    } else {
+        while(cicles>0) {
+            step();
+            printMap();
+            cicles--;
+        }
+    }
 }
