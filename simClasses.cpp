@@ -1,5 +1,7 @@
 #include <iostream>
 #include <cstdlib>
+#include <chrono>
+#include <thread>
 
 #include "simClasses.h"
 #include "simConstants.h"
@@ -34,30 +36,52 @@ Gene Gene::operator+(const Gene& b) {
  ██████  ██   ██  ██████  ██   ██ ██   ████ ██ ███████ ██      ██ 
 ///////////////////////////////////////////////////*/
 
-Organism::Organism(int baseenergy, bool generaterandom=false)
+Organism::Organism(Int baseenergy, bool generaterandom/*=false*/)
         : age(0), generation(0), children(0), energy(baseenergy) {
     if (generaterandom) {
-        adultage.setvalue();
-        reprEneFactor.setvalue();
+        adulthoodGene.setvalue();
+        reprEnerGene.setvalue();
         size.setvalue();
-
         sight.setvalue();
-        offspringratio.setvalue();
+        offspringRatio.setvalue();
     }
 }
 
-void Organism::setMoveCost() {
-    
+void Organism::setInternalvalues() {
+    adultage = (MAX_ORGANISM_AGE*adulthoodGene.geneval())/GENE_MAX_VAL;
+    if (adultage<MIN_ORGANISM_ADULTHOOD) {adultage = MIN_ORGANISM_ADULTHOOD;}
+    moveCost = (MAX_SIZE_MOVE_COST*size.geneval())/(Int)GENE_MAX_VAL;
+    if (moveCost<1) {moveCost = 1;}
+    matingEnergyThreshold = moveCost*MAX_REPR_MOVE_STOCKPILE*reprEnerGene.geneval()/GENE_MAX_VAL;
+    offpringEnergy = matingEnergyThreshold*offspringRatio.geneval()/GENE_MAX_VAL;
+}
+
+void Organism::updateMatingUrges() {
+    if(activeMatingSearch) {
+        if (energy < matingEnergyThreshold) { activeMatingSearch = false; }
+    } else if (energy>matingEnergyThreshold && age>adultage) { activeMatingSearch = true; }
 }
 
 void Organism::reproduce() {
-    energy -= offspringEnergy();
+    energy -= offpringEnergy;
     children++;
     age++;
+    updateMatingUrges();
 }
 
 void Organism::move() {
     energy -= moveCost;
+    age++;
+    updateMatingUrges();
+}
+
+void Organism::eat(Int e=DEFAULT_FOOD_AMOUNT) {
+    energy+= e;
+    age++;
+    updateMatingUrges();
+}
+
+void Organism::wait() {
     age++;
 }
 
@@ -65,10 +89,11 @@ Organism Organism::operator + (Organism& org) {
     Organism baby(offspringEnergy() + org.offspringEnergy());
     baby.generation = (generation > org.generation) ? generation+1 : org.generation+1;
     baby.adultage = adultage + org.adultage;
-    baby.reprEneFactor = reprEneFactor + org.reprEneFactor;
+    baby.reprEnerGene = reprEnerGene + org.reprEnerGene;
     baby.size = size + org.size;
     baby.sight = sight + org.sight;
-    baby.offspringratio = offspringratio + org.offspringratio;
+    baby.offspringRatio = offspringRatio + org.offspringRatio;
+    baby.setInternalvalues();
     return baby;
 }
 
@@ -77,9 +102,9 @@ void Organism::showOrganism() {
     std::cout << "generation: "     << generation               << "\t";
     std::cout << "children: "       << children                 << "\n";
     std::cout << "energy: "         << energy                   << "\n";
-    std::cout << "adultage: "       << adultage.geneval()       << "\t";
+    std::cout << "adultage: "       << adulthoodGene.geneval()       << "\t";
     std::cout << "size: "           << size.geneval()           << "\t";
-    std::cout << "offspringratio: " << offspringratio.geneval() << "\n" << std::endl;
+    std::cout << "offspringRatio: " << offspringRatio.geneval() << "\n" << std::endl;
 }
 
 char Organism::reprChar() {
@@ -93,7 +118,7 @@ char Organism::reprChar() {
 ██      ██      ██      ██      
  ██████ ███████ ███████ ███████
 ///////////////////////////////////////////////////*/
-Cell::Cell() : food(false) {
+Cell::Cell() : food(false), foodturn(FOOD_TURN_AMOUNT) {
     occupied[0] = nullptr;
     occupied[1] = nullptr;
     occupied[2] = nullptr;
@@ -118,7 +143,7 @@ char Cell::cellshow() {
 ██      ██  ██ ██  ██  ██  ██ ██   ██ ██    ██ ██  ██  ██ ██      ██  ██ ██    ██    
 ███████ ██   ████   ████   ██ ██   ██  ██████  ██      ██ ███████ ██   ████    ██
 ///////////////////////////////////////////////////*/
-Enviroment::Enviroment() : xsize(0), ysize(0) {}
+Enviroment::Enviroment() : xsize(0), ysize(0), map(nullptr) {}
 
 Enviroment::Enviroment(Int xs, Int ys) : xsize(xs), ysize(ys) {
     map = new Cell*[xsize];
@@ -145,15 +170,17 @@ void Enviroment::showFoodCells() {
 }
 
 void Enviroment::printMap() {
+    for (Int i=0; i<20; i++) { std::cout << "\n"; }
     std::cout << "|";
     for (Int y=0; y<ysize; y++) { std::cout << "="; }
-    std::cout << "|";
+    std::cout << "|\n|";
     for (Int x=0; x<xsize; x++) {
         for (Int y=0; y<ysize; y++) { std::cout << map[x][y].cellshow(); }
         std::cout << "|\n|";
     }
     for (Int y=0; y<ysize; y++) { std::cout << "="; }
     std::cout << "|" << std::endl;
+    std::this_thread::sleep_for(std::chrono::milliseconds(40));
 }
 
 Enviroment::~Enviroment() {
@@ -214,9 +241,9 @@ void Enviroment::foodScramble(Int x, Int y) {
      ██ ██ ██  ██  ██ ██    ██ ██      ██   ██    ██    ██ ██    ██ ██  ██ ██ 
 ███████ ██ ██      ██  ██████  ███████ ██   ██    ██    ██  ██████  ██   ████ 
 ///////////////////////////////////////////////////*/
+
 Simulation::Simulation(Int xs, Int ys, Int initFood, Int foodp, Int fooda, Int initOrganisms, Int baseEnergy)
-          : Enviroment(xs, ys), foodperiod(foodp), foodamount(fooda){
-    Organism* originals;
+          : Enviroment(xs, ys), foodperiod(foodp), foodamount(fooda) {
     sprayFood(initFood);
     for(Int i=0; i<initOrganisms; i++) {
         addOrganism(new Organism(baseEnergy, true));
@@ -231,17 +258,17 @@ void Simulation::step() {
     }
 }
 
-void Simulation::run(Int cicles=-1) {
-    if (cicles==-1) {
+void Simulation::run(Int cycles/*=-1*/) {
+    if (cycles==-1) {
         while(true) {
             step();
             printMap();
         }
     } else {
-        while(cicles>0) {
+        while(cycles>0) {
             step();
             printMap();
-            cicles--;
+            cycles--;
         }
     }
 }

@@ -3,13 +3,14 @@
 #include <cstdlib>
 #include "simConstants.h"
 
+enum Direction {Right, Righdown, Down, Downleft, Left, Leftup, Up, Upright};
 
 /* A gene is number between 1 and GENE_MAX_VAL. This class includes ways to merge them */
 class Gene {
 private:
-    int value;
+    Int value;
     /* Returns a random value between 1 and GENE_MAX_VAL */
-    inline int randomGeneVal() { return (rand()%GENE_MAX_VAL) + 1; }
+    inline Int randomGeneVal() { return (rand()%GENE_MAX_VAL) + 1; }
 
     /* Performs a roll that returns true with a small probability */
     inline bool radicalMutationRoll() { return (rand()%RADICAL_MUT_FACTOR==0 ? true : false); }
@@ -19,13 +20,13 @@ public:
     Gene(true) generates a random value */
     Gene(bool setvalue=false) { if (setvalue) { value = randomGeneVal(); } }
 
-    Gene(int v) : value(v) {}
+    Gene(Int v) : value(v) {}
 
     /* Returns the value of the gene */
-    int geneval() { return value; }
+    Int geneval() { return value; }
 
     /* Initiates the value. With no argument it sets a random one*/
-    void setvalue(int val=-1) { value = val==-1 ? randomGeneVal() : val; }
+    void setvalue(Int val=-1) { value = val==-1 ? randomGeneVal() : val; }
 
     /* Generates an offpring of two genes*/
     Gene operator+(const Gene&);
@@ -41,33 +42,53 @@ public:
     offspringratio: Percentage of energy that the child is given by that parent upon birth */
 class Organism {
 private:
-    unsigned int age;
-    unsigned int generation;
-    unsigned int children;
-    unsigned int energy;
-    unsigned int moveCost;
-    Gene adultage;
-    Gene reprEneFactor;
-    Gene size;
+    //Genes: go from 1 to GENE_MAX_VAL
+    Gene adulthoodGene;
+    Gene reprEnerGene;
     Gene sight;
-    Gene offspringratio;
-    
+    Gene size;
+    Gene offspringRatio;
+
+    // Specific values set by the given genes that are initiated at the beggining of the organism's life and CANT be changed
+    Int moveCost;
+    Int matingEnergyThreshold;
+    Int offpringEnergy;
+    Int adultage;
+
+    // General information about the organism that is updated throughout its life.
+    Int age;
+    Int generation;
+    Int children;
+    Int energy;
+    bool activeMatingSearch;
+
+    /* Initialices moveCost, matingEnergyThreshold, and others depend of the Genes of the organism */
+    void setInternalvalues();
+
+    /* Given the current energy and urges and age, sets if the organism will seek reproduction on the next step */
+    void updateMatingUrges();
+
     /* Returns how much energy this organism would give to its offspring given its current energy */
-    inline int offspringEnergy() {
-        return static_cast<float>(energy)*(static_cast<float>(offspringratio.geneval())/1000.0f);
+    inline Int offspringEnergy() {
+        return static_cast<float>(energy)*(static_cast<float>(offspringRatio.geneval())/1000.0f);
     }
 
-    void setMoveCost();
-
 public:
-    Organism(int baseenergy, bool generaterandom=false);
+    Organism(Int baseenergy, bool generaterandom=false);
 
     /* Modifies the Organism as if it just reproduced.
     NOTE: Call AFTER calling baby=org1+org2 */
     void reproduce();
 
-    /* Modifies the Organisms as if it just moved one step */
+    /* Modifies the Organisms as if it just moved one step.
+    NOTE: Call after calling setMoveCost() for the organism */
     void move();
+
+    /* Modifies the Organisms as if it just ate. */
+    void eat(Int);
+
+    /* Modifies the Organisms as if it just spend time doing nothing. */
+    void wait();
 
     /* Returns the offspring of the two organisms */
     Organism operator + (Organism& org);  
@@ -83,27 +104,29 @@ public:
 class Cell {
 public:
     bool food;
+    Int foodturn;
     Organism* occupied[3];
+    Direction dir[3];
     Cell();
     char cellshow();
 };
 
 class Enviroment {
 protected:
-    int xsize;
-    int ysize;
+    Int xsize;
+    Int ysize;
     Cell** map;
 public:
-    Enviroment(int xs, int ys);
+    Enviroment(Int xs, Int ys);
 
     /* Creates an un-initialized enviroment, size=0 */
     Enviroment();
 
     /* Allocates memory */
-    void initialize(int xs, int ys);
+    void initialize(Int xs, Int ys);
 
     /* Selects [amount] of random cells of the enviroment and puts food there */
-    void sprayFood(int amount);
+    void sprayFood(Int amount);
 
     /* Selects a random free place of them map and places the organism there */
     void addOrganism(Organism*);
@@ -111,11 +134,11 @@ public:
     /* Creates a new organism if attempt works.
     PRE: map[x][y] has two adult organisms
     POST: If successful attempt, third organism will be on cell*/
-    void reproductionAttempt(int x, int y);
+    void reproductionAttempt(Int x, Int y);
 
     /* Simulates a fight and gives the winner the food
     PRE: map[x][y] has two organisms and food */
-    void foodScramble(int x, int y);
+    void foodScramble(Int x, Int y);
 
     void showFoodCells();
 
@@ -126,14 +149,14 @@ public:
 
 class Simulation : private Enviroment {
 private:
-    int foodperiod;
-    int foodamount;
+    Int foodperiod;
+    Int foodamount;
 public:
-    Simulation(int xs, int ys, int initFood, int foodp, int fooda, int initOrganisms, int baseEnergy);
+    Simulation(Int xs, Int ys, Int initFood, Int foodp, Int fooda, Int initOrganisms, Int baseEnergy);
 
     void step();
 
-    void run(int cicles=0);
+    void run(Int cycles=-1);
 };
 
 #endif
